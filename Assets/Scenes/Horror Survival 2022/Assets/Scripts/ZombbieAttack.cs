@@ -15,22 +15,20 @@ public class ZombbieAttack : MonoBehaviour
     void Start()
     {
         col=GetComponent<Collider>();
-        bloodEffect = GameObject.Find("BloodScreen").GetComponent<Animator>();   
+        var bs = GameObject.Find("BloodScreen");
+        if (bs != null) bloodEffect = bs.GetComponent<Animator>();   
         hitsound=GetComponent<AudioSource>();   
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (col.enabled == false)
+        if (col != null && col.enabled == false)
         {
             canDamage = true;
         }
-
-
-    
-        
     }
+
     private void OnTriggerEnter(Collider other)
     {
         if (other.CompareTag("Player"))
@@ -39,22 +37,20 @@ public class ZombbieAttack : MonoBehaviour
             {
                 canDamage = false;
 
-         
                 if (SaveScript.health > 0)
                 {
                     SaveScript.health -= damageAmount;
-                 
                     SaveScript.health = Mathf.Max(0, SaveScript.health);
                 }
              
                 if (SaveScript.infection < 100)
                 {
                     SaveScript.infection += damageAmount;
-
                     SaveScript.infection = Mathf.Min(100, SaveScript.infection);
                 }
-                bloodEffect.SetTrigger("Blood");
-                hitsound.Play();
+
+                if (bloodEffect != null) bloodEffect.SetTrigger("Blood");
+                if (hitsound != null) hitsound.Play();
             }
         }
     }

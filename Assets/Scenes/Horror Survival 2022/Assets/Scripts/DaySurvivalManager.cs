@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.AI;
 using TMPro;
 
 public class DaySurvivalManager : MonoBehaviour
@@ -22,7 +23,7 @@ public class DaySurvivalManager : MonoBehaviour
     [Header("Survival Settings")]
     public int currentDay = 1;
     public const int MaxDays = 10;
-    public float dayDuration = 180f; // 3 minutes per day
+    public float dayDuration = 180f; // 3 minutes per night
     public float timer;
     public bool isDayActive = true;
 
@@ -36,6 +37,16 @@ public class DaySurvivalManager : MonoBehaviour
     public Transform extractionBoat;
     public float extractionRadius = 8f;
     public AudioSource radioAudioSource;
+
+    [Header("Night Zombie Wave Settings")]
+    public GameObject[] zombiePrefabs;
+    public int baseWaveZombies = 4;
+    public int waveZombiesPerDay = 2;
+    public float waveSpawnRadiusMin = 22f;
+    public float waveSpawnRadiusMax = 42f;
+    private List<GameObject> activeWaveZombies = new List<GameObject>();
+    private float trickleTimer = 0f;
+    private float trickleInterval = 40f;
 
     [Header("UI - Day & Timer")]
     public TextMeshProUGUI dayText;
@@ -83,9 +94,33 @@ public class DaySurvivalManager : MonoBehaviour
             if (radioAudioSource == null) radioAudioSource = gameObject.AddComponent<AudioSource>();
         }
 
+        InitializeZombiePrefabs();
+
         currentDay = Mathf.Clamp(SaveScript.currentDay, 1, MaxDays);
         SpawnPlayerAtDay(currentDay);
         StartDay(currentDay);
+    }
+
+    void InitializeZombiePrefabs()
+    {
+        if (zombiePrefabs != null && zombiePrefabs.Length > 0) return;
+
+        var spawners = FindObjectsOfType<ZombieSpawn>();
+        List<GameObject> list = new List<GameObject>();
+        foreach (var sp in spawners)
+        {
+            if (sp.zombies != null)
+            {
+                foreach (var z in sp.zombies)
+                {
+                    if (z != null && !list.Contains(z)) list.Add(z);
+                }
+            }
+        }
+        if (list.Count > 0)
+        {
+            zombiePrefabs = list.ToArray();
+        }
     }
 
     void Update()
@@ -102,13 +137,30 @@ public class DaySurvivalManager : MonoBehaviour
             }
         }
 
-        // Day timer progression
+        // Night timer progression
         if (isDayActive)
         {
             if (timer > 0)
             {
                 timer -= Time.deltaTime;
                 UpdateHUD();
+
+                // Zombie wave trickle / reinforcement check
+                if (timer > 15f)
+                {
+                    trickleTimer += Time.deltaTime;
+                    if (trickleTimer >= trickleInterval)
+                    {
+                        trickleTimer = 0f;
+                        activeWaveZombies.RemoveAll(z => z == null);
+                        int maxAlive = baseWaveZombies + (currentDay - 1) * waveZombiesPerDay;
+                        if (activeWaveZombies.Count < maxAlive)
+                        {
+                            int idx = Mathf.Clamp(currentDay - 1, 0, checkpoints.Length - 1);
+                            SpawnSingleWaveZombie(checkpoints[idx].spawnPosition);
+                        }
+                    }
+                }
 
                 if (timer <= 0)
                 {
@@ -133,12 +185,27 @@ public class DaySurvivalManager : MonoBehaviour
         }
     }
 
+    public void ResetPlayerStats()
+    {
+        SaveScript.health = 100;
+        SaveScript.stamina = 100f;
+        SaveScript.infection = 0f;
+    }
+
     public void StartDay(int day)
     {
         currentDay = day;
         SaveScript.currentDay = day;
         timer = dayDuration;
         isDayActive = true;
+        trickleTimer = 0f;
+
+        // Reset player status to full on every new day
+        ResetPlayerStats();
+
+        // Spawn night wave around the shelter
+        SpawnNightWave(day);
+
         UpdateHUD();
 
         int idx = day - 1;
@@ -173,8 +240,61 @@ public class DaySurvivalManager : MonoBehaviour
         }
     }
 
+    public void SpawnNightWave(int day)
+    {
+        ClearWaveZombies();
+        if (zombiePrefabs == null || zombiePrefabs.Length == 0) InitializeZombiePrefabs();
+        if (zombiePrefabs == null || zombiePrefabs.Length == 0) return;
+
+        int count = baseWaveZombies + (day - 1) * waveZombiesPerDay;
+        int idx = Mathf.Clamp(day - 1, 0, checkpoints.Length - 1);
+        Vector3 center = checkpoints[idx].spawnPosition;
+
+        for (int i = 0; i < count; i++)
+        {
+            SpawnSingleWaveZombie(center);
+        }
+    }
+
+    private void SpawnSingleWaveZombie(Vector3 center)
+    {
+        if (zombiePrefabs == null || zombiePrefabs.Length == 0) return;
+        Vector2 circle = Random.insideUnitCircle.normalized * Random.Range(waveSpawnRadiusMin, waveSpawnRadiusMax);
+        Vector3 targetPos = center + new Vector3(circle.x, 0f, circle.y);
+
+        if (NavMesh.SamplePosition(targetPos, out NavMeshHit hit, 15f, NavMesh.AllAreas))
+        {
+            GameObject prefab = zombiePrefabs[Random.Range(0, zombiePrefabs.Length)];
+            if (prefab != null)
+            {
+                GameObject z = Instantiate(prefab, hit.position + Vector3.up * 0.1f, Quaternion.Euler(0f, Random.Range(0f, 360f), 0f));
+                activeWaveZombies.Add(z);
+                SaveScript.zombiesInGameAmt++;
+            }
+        }
+    }
+
+    public void ClearWaveZombies()
+    {
+        for (int i = activeWaveZombies.Count - 1; i >= 0; i--)
+        {
+            if (activeWaveZombies[i] != null)
+            {
+                Destroy(activeWaveZombies[i]);
+            }
+        }
+        activeWaveZombies.Clear();
+    }
+
     public void OnDayCompleted()
     {
+        ClearWaveZombies();
+
+        if (MissionManager.Instance != null && currentDay == 1)
+        {
+            MissionManager.Instance.CompleteMission(0);
+        }
+
         if (currentDay < MaxDays)
         {
             StartCoroutine(DayTransitionRoutine(currentDay + 1));
@@ -190,6 +310,7 @@ public class DaySurvivalManager : MonoBehaviour
     IEnumerator DayTransitionRoutine(int nextDay)
     {
         isDayActive = false;
+        ClearWaveZombies();
 
         if (dayTransitionBanner != null)
         {
@@ -215,6 +336,7 @@ public class DaySurvivalManager : MonoBehaviour
     {
         gameWon = true;
         isDayActive = false;
+        ClearWaveZombies();
         PlayRadioCaption("[RESCUE TEAM]", "Survivor on board! Extraction successful! We are heading home!", null);
 
         if (youWonScreen != null)
@@ -249,6 +371,7 @@ public class DaySurvivalManager : MonoBehaviour
 
         if (voice != null && radioAudioSource != null)
         {
+            radioAudioSource.Stop();
             radioAudioSource.clip = voice;
             radioAudioSource.Play();
         }
@@ -257,9 +380,8 @@ public class DaySurvivalManager : MonoBehaviour
         {
             captionBodyText.text = text;
             captionBodyText.maxVisibleCharacters = 0;
-            captionBodyText.ForceMeshUpdate();
 
-            int totalVisible = captionBodyText.textInfo.characterCount;
+            int totalVisible = text.Length;
             for (int i = 0; i <= totalVisible; i++)
             {
                 captionBodyText.maxVisibleCharacters = i;
@@ -267,12 +389,15 @@ public class DaySurvivalManager : MonoBehaviour
             }
         }
 
-        yield return new WaitForSeconds(captionDuration);
+        float displayTime = voice != null ? Mathf.Max(voice.length + 1f, captionDuration) : captionDuration;
+        yield return new WaitForSeconds(displayTime);
 
         if (captionPanel != null)
         {
             captionPanel.SetActive(false);
         }
+
+        captionCoroutine = null;
     }
 
     void UpdateHUD()
@@ -303,7 +428,7 @@ public class DaySurvivalManager : MonoBehaviour
             checkpointName = "Starting Bridge Shelter",
             spawnPosition = new Vector3(455.05f, 28.50f, 148.00f),
             spawnRotationY = 0f,
-            radioTransmission = "All survivors, emergency extraction team dispatched! ETA 10 days. Move north and secure shelters along the route!"
+            radioTransmission = "You can't fight all of them! You need some weapons. Check nearby houses, you may find something in this infected area. Earlier these were homes of police officers, but the zombies destroyed all of it."
         };
 
         checkpoints[1] = new DayCheckpoint {

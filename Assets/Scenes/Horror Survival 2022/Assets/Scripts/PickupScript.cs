@@ -1,6 +1,5 @@
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -194,7 +193,6 @@ public class PickupScript : MonoBehaviour
                             hit.transform.gameObject.GetComponent<DoorType>().opened = false;
                             hit.transform.gameObject.GetComponent<Animator>().SetTrigger("Close");
                         }
-                        SaveScript.ammoAmount[objID]++;
 
                         audioPlayer.Play();
 
@@ -215,26 +213,29 @@ public class PickupScript : MonoBehaviour
         }
 
 
-        if (Physics.SphereCast(transform.position, 0.05f, transform.forward, out gunHit, 500))
+        if (!SaveScript.inventoryOpen && Input.GetMouseButtonDown(0))
         {
-            if (gunHit.transform.gameObject.name == "Body" && SaveScript.Weaponid == 4)
+            if (SaveScript.Weaponid == 4 && SaveScript.currAmmo[4] > 0)
             {
-                if(Input.GetMouseButton(0) && SaveScript.currAmmo[4]>0) 
+                if (Physics.SphereCast(transform.position, 0.1f, transform.forward, out gunHit, 500))
                 {
-                    gunHit.transform.gameObject.GetComponent<GunDamage>().SendGunDamage(gunHit.point);
+                    if (gunHit.transform != null && gunHit.transform.gameObject.name == "Body")
+                    {
+                        var gd = gunHit.transform.gameObject.GetComponent<GunDamage>();
+                        if (gd != null) gd.SendGunDamage(gunHit.point);
+                    }
                 }
-                
             }
-        }
-        if (Physics.SphereCast(transform.position, 0.05f, transform.forward, out shotHits, 50))
-        {
-            if (gunHit.transform.gameObject.name == "Body" && SaveScript.Weaponid == 5)
+            else if (SaveScript.Weaponid == 5 && SaveScript.currAmmo[5] > 0)
             {
-                if (Input.GetMouseButton(0) && SaveScript.currAmmo[5] > 0)
+                if (Physics.SphereCast(transform.position, 0.2f, transform.forward, out shotHits, 50))
                 {
-                    gunHit.transform.gameObject.GetComponent<GunDamage>().SendShotDamage(shotHits.point);
+                    if (shotHits.transform != null && shotHits.transform.gameObject.name == "Body")
+                    {
+                        var gd = shotHits.transform.gameObject.GetComponent<GunDamage>();
+                        if (gd != null) gd.SendShotDamage(shotHits.point);
+                    }
                 }
-
             }
         }
 

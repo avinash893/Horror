@@ -1,8 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Threading;
 using Unity.VisualScripting;
 
 using UnityEngine;
@@ -283,8 +281,7 @@ public class FirstPersonController : MonoBehaviour
     {
         if (Physics.Raycast(playerCamera.ViewportPointToRay(interactionRayPoint), out RaycastHit hit, interactionDistance))
         {
-            if (hit.collider.gameObject.layer == 9 && (currentInteractable == null || hit.collider.gameObject.GetInstanceID() != currentInteractable.GetInstanceID()
-                ))
+            if (hit.collider.gameObject.layer == 9 && (currentInteractable == null || hit.collider.gameObject != currentInteractable.gameObject))
             {
                 hit.collider.TryGetComponent(out currentInteractable);
                 if (currentInteractable)

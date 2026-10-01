@@ -47,13 +47,17 @@ public class NightVision : MonoBehaviour
         {
             if (cam.fieldOfView < 60)
             {
-                cam.fieldOfView += 5;
-
-                ZoomBar.fillAmount = cam.fieldOfView / 100;
+                if (ZoomBar != null && cam != null)
+                {
+                    ZoomBar.fillAmount = cam.fieldOfView / 100;
+                }
             }
         }
      
-        Batterychunk.fillAmount = batteryPower;
+        if (Batterychunk != null)
+        {
+            Batterychunk.fillAmount = batteryPower;
+        }
 
        
     }

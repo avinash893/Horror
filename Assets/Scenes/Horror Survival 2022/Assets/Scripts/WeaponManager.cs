@@ -76,11 +76,24 @@ public class WeaponManager : MonoBehaviour
             {
                 if (SaveScript.inventoryOpen == false)
                 {
-                    if (SaveScript.currAmmo[SaveScript.Weaponid] > 0 && SaveScript.stamina > 20)
+                    bool canAttack = false;
+                    if (SaveScript.Weaponid < 4)
+                    {
+                        canAttack = SaveScript.stamina > 10;
+                    }
+                    else if (SaveScript.Weaponid == 4 || SaveScript.Weaponid == 5)
+                    {
+                        canAttack = SaveScript.currAmmo[SaveScript.Weaponid] > 0;
+                    }
+
+                    if (canAttack)
                     {
                         anim.SetTrigger("Attack");
-                        audioPlayer.clip = weaponSounds[SaveScript.Weaponid];
-                        audioPlayer.Play();
+                        if (SaveScript.Weaponid < weaponSounds.Length && weaponSounds[SaveScript.Weaponid] != null)
+                        {
+                            audioPlayer.clip = weaponSounds[SaveScript.Weaponid];
+                            audioPlayer.Play();
+                        }
                         if (SaveScript.Weaponid == 4 || SaveScript.Weaponid == 5)
                         {
                             SaveScript.gunUsed = true;
@@ -91,8 +104,11 @@ public class WeaponManager : MonoBehaviour
                     {
                         if (SaveScript.Weaponid == 4 || SaveScript.Weaponid == 5)
                         {
-                            audioPlayer.clip = weaponSounds[8];
-                            audioPlayer.Play();
+                            if (weaponSounds.Length > 8 && weaponSounds[8] != null)
+                            {
+                                audioPlayer.clip = weaponSounds[8];
+                                audioPlayer.Play();
+                            }
                         }
                     }
                 }
@@ -139,22 +155,21 @@ public class WeaponManager : MonoBehaviour
             {
                 if (Input.GetKeyDown(KeyCode.R))
                 {
-                    if (SaveScript.currAmmo[SaveScript.Weaponid - 4] > 0)
+                    int ammoIdx = SaveScript.Weaponid - 4;
+                    if (ammoIdx >= 0 && ammoIdx < SaveScript.ammoAmount.Length && SaveScript.ammoAmount[ammoIdx] > 0)
                     {
-
-
-                        SaveScript.currAmmo[SaveScript.Weaponid] += SaveScript.ammoAmount[SaveScript.Weaponid - 4];
-                        SaveScript.ammoAmount[SaveScript.Weaponid - 4] = 0;
-
+                        SaveScript.currAmmo[SaveScript.Weaponid] += SaveScript.ammoAmount[ammoIdx];
+                        SaveScript.ammoAmount[ammoIdx] = 0;
 
                         anim.SetTrigger("Reload");
 
-
-                        audioPlayer.clip = reloadsounds[SaveScript.Weaponid - 4];
-                        audioPlayer.Play();
+                        if (ammoIdx < reloadsounds.Length && reloadsounds[ammoIdx] != null)
+                        {
+                            audioPlayer.clip = reloadsounds[ammoIdx];
+                            audioPlayer.Play();
+                        }
                     }
                 }
-
             }
         }
     }

@@ -120,8 +120,7 @@ public class ItemsInventory : MonoBehaviour
         if (ItemNo != 8) {
             flRefill = false;
         }
-
-        else if (ItemNo != 9)
+        if (ItemNo != 9)
         {
             nvRefill = false;
         }
@@ -181,6 +180,7 @@ public class ItemsInventory : MonoBehaviour
 
         if (reduceInfection == true)
         {
+            reduceInfection = false;
             if (SaveScript.infection > 0.0f)
             {
                 SaveScript.infection -= updateInfection;

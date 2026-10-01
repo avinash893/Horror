@@ -20,7 +20,10 @@ public class FlScript : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        FlChunks.fillAmount=batteryPower;
+        if (FlChunks != null)
+        {
+            FlChunks.fillAmount = batteryPower;
+        }
     }
     private void FlBatteryDrain()
     {

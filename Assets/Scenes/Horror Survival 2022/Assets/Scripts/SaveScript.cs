@@ -25,8 +25,8 @@ public class SaveScript : MonoBehaviour
     public static int[] currAmmo = new int[9];
 
     public static float stamina;
-    public static float infection;
-    public static int health;
+    public static float infection = 0f;
+    public static int health = 100;
 
     public static GameObject doorObj;
     public static List<GameObject> zommbieChasing = new List<GameObject>();
@@ -54,6 +54,8 @@ public class SaveScript : MonoBehaviour
     {
 
 
+        health = 100;
+        infection = 0f;
         stamina = FirstPersonController.FpsStamina;
         
 

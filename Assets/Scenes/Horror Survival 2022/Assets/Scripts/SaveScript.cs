@@ -27,6 +27,7 @@ public class SaveScript : MonoBehaviour
     public static float stamina;
     public static float infection = 0f;
     public static int health = 100;
+    public static int currentDay = 1;
 
     public static GameObject doorObj;
     public static List<GameObject> zommbieChasing = new List<GameObject>();

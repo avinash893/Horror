@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Unity.VisualScripting;
@@ -63,37 +63,44 @@ public class Zombie : MonoBehaviour
     void Start()
     {
 
-        backgroundMusicPlayer=GameObject.Find("BackgroundMusic").GetComponent<AudioSource>();
-        chaseMusicPlayer = GameObject.Find("ChaseMusic").GetComponent<AudioSource>();
-        ZombieSound=GetComponent<AudioSource>();
+        var bgMusic = GameObject.Find("BackgroundMusic");
+        if (bgMusic != null) backgroundMusicPlayer = bgMusic.GetComponent<AudioSource>();
+        var chaseMusic = GameObject.Find("ChaseMusic");
+        if (chaseMusic != null) chaseMusicPlayer = chaseMusic.GetComponent<AudioSource>();
+        ZombieSound = GetComponent<AudioSource>();
 
-
-        anim=GetComponent<Animator>();
-        anim.SetLayerWeight(((int)ZombieStyle+1), 1);
-        agent=GetComponent<NavMeshAgent>();
+        anim = GetComponent<Animator>();
+        if (anim != null)
+        {
+            anim.SetLayerWeight(((int)ZombieStyle + 1), 1);
+            anim.SetTrigger(chooseState.ToString());
+        }
+        agent = GetComponent<NavMeshAgent>();
         target = GameObject.FindGameObjectsWithTag("Target");
         Player = GameObject.Find("FPSController");
         zombieAlertrange = Random.Range(6f, 35f);
 
         if (ZombieStyle == ZombieType.shuffle)
         {
-            transform.position = new Vector3(transform.position.x,transform.position.y+yadj,transform.position.z);
+            transform.position = new Vector3(transform.position.x, transform.position.y + yadj, transform.position.z);
         }
-        anim.SetTrigger(chooseState.ToString());
-    
-        currentState=(int)chooseState;
+
+        currentState = (int)chooseState;
 
         if (randomState == true) 
         {
             InvokeRepeating("SetAnimState", randomTiming, randomTiming);
         }
 
-
-        
+        if (agent != null && target != null && target.Length > 0 && target[0] != null)
+        {
             agent.destination = target[0].transform.position;
-        
-        
-        agent.speed = walkSpeed[(int)ZombieStyle];
+        }
+
+        if (agent != null && walkSpeed != null && (int)ZombieStyle < walkSpeed.Length)
+        {
+            agent.speed = walkSpeed[(int)ZombieStyle];
+        }
     }
 
     // Update is called once per frame
